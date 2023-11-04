@@ -44,7 +44,7 @@ class AuthController(AuthRPC):
 
         user_id = auth_service.authenticate(data)
 
-        return auth_schema.AuthenticateRPCResponse().load({
+        return auth_schema.AuthenticateRPCResponse().dump({
             'user_id': user_id,
         })
 

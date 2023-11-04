@@ -1,5 +1,6 @@
 from .models.user import UserEntity
 from apollo_shared.schema import auth as auth_schema
+from apollo_shared import exception
 from .dal import AuthDAL
 from secrets import token_hex
 import bcrypt
@@ -11,14 +12,10 @@ class AuthService:
         self.auth_dal = auth_dal
 
     def register(self, data: auth_schema.RegisterSchemaRPC) -> (UserEntity, str):
-        user_exist = None
-        try:
-            user_exist = self.auth_dal.fetch_user_by_username(data['username'])
-        except Exception:
-            pass
+        exist_user = self.auth_dal.fetch_user_by_username(data['username'])
 
-        if user_exist:
-            raise Exception("This username already has been registered")
+        if exist_user is not None:
+            raise exception.BadRequest("this username already has been registered")
 
         user = UserEntity(**data)
         user.password = self.__hashing_password(user.password)
@@ -30,8 +27,11 @@ class AuthService:
     def login(self, data: auth_schema.LoginSchemaRPC) -> (UserEntity, str):
         user = self.auth_dal.fetch_user_by_username(data['username'])
 
+        if user is None:
+            raise exception.BadRequest('user or password is wrong')
+
         if not self.__check_password(data['password'], user.password):
-            raise Exception
+            raise exception.BadRequest('user or password is wrong')
 
         return user, self.__set_token(str(user.id))
 
@@ -42,7 +42,12 @@ class AuthService:
     def authenticate(self, data: auth_schema.AuthenticateRPC) -> str:
         key = self.__generate_key_for_token(data['token'])
 
-        return self.auth_dal.get_from_redis(key)
+        user_id = self.auth_dal.get_from_redis(key)
+
+        if user_id is None:
+            raise exception.Unauthorized('Unauthorized')
+
+        return user_id
 
     def __set_token(self, user_id: str) -> str:
         token = self.__generate_token()

@@ -17,20 +17,10 @@ class AuthDAL:
     def delete_from_redis(self, key: str) -> None:
         self.redis.delete(key)
 
-    def get_from_redis(self, key: str) -> str:
-        value = self.redis.get(key)
+    def get_from_redis(self, key: str) -> str | None:
+        return self.redis.get(key)
 
-        if value is None:
-            raise Exception('key not found in redis')
-
-        return value
-
-    def fetch_user_by_username(self, username: str) -> UserEntity:
-        result = self.db_session.query(UserEntity).filter(
+    def fetch_user_by_username(self, username: str) -> UserEntity | None:
+        return self.db_session.query(UserEntity).filter(
             UserEntity.username == username
         ).one_or_none()
-
-        if not result:
-            raise Exception
-
-        return result

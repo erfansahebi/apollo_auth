@@ -5,8 +5,7 @@ until nc -z "${RABBITMQ_HOST}" "${RABBITMQ_PORT}"; do
     sleep 2
 done
 
-if [ -d /shared/ ]; then
-  echo "installing local shared library ..."
+if [ "${APP_ENV}" = "local" ]; then
   pip install -e /shared/
 fi
 
